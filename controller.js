@@ -31,6 +31,10 @@ function launchMicroProcesses()
 		};
 
 	procs.push(proc);
+
+	for (var i = 0; i < procs.length; ++i) {
+		aiota.startProcess(db, proc);
+	}
 }
 
 function bodyParser(request, response, next)
@@ -102,34 +106,37 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 		setInterval(function() { aiota.heartbeat(config.processName, config.serverName, db); }, 10000);
 
 		process.on("SIGTERM", function() {
-			aiota.terminateProcess(config.processName, config.serverName, db);
-
-			db.collection("running_processes", function(err, collection) {
-				if (err) {
-					createLog(config.processName, config.serverName, db, err);
-					return;
-				}
-		
-				var pids = [];
-				
-				var stream = collection.find({ server: config.serverName, status: "running" }, { _id: 0, pid: 1 }).stream();
-				
-				stream.on("error", function (err) {
-					createLog(config.processName, config.serverName, db, err);
-				});
-		
-				stream.on("data", function(doc) {
-					pids.push(doc.pid);
-				});
-		
-				stream.on("end", function() {
-					for (var i = 0; i < pids.length; ++i) {
-						console.log(pids[i]);
+			aiota.terminateProcess(config.processName, config.serverName, db, function() {
+				db.collection("running_processes", function(err, collection) {
+					if (err) {
+						createLog(config.processName, config.serverName, db, err);
+						process.exit(1);
+						return;
 					}
+			
+					var pids = [];
+					
+					var stream = collection.find({ server: config.serverName, status: "running" }, { pid: 1 }).stream();
+					
+					stream.on("error", function (err) {
+						createLog(config.processName, config.serverName, db, err);
+					});
+			
+					stream.on("data", function(doc) {
+						pids.push(doc.pid);
+					});
+			
+					stream.on("end", function() {
+						for (var i = 0; i < pids.length; ++i) {
+							console.log(pids[i]);
+							process.kill(pids[i], "SIGTERM");
+						}
+				
+						collection.update
+						process.exit(1);
+					});
 				});
 			});
-
-			process.exit(1);
 		});
 	}
 });
