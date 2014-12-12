@@ -36,6 +36,25 @@ function launchMicroProcesses()
 	}
 }
 
+function cleanUp()
+{
+	// Remove all processes from the running processes collection which have not sent their status for 20 seconds or more
+	db.collection("running_processes", function(err, collection) {
+		if (err) {
+			aiota.log(config.processName, config.serverName, db, err);
+			return;
+		}
+
+		var ts = Date.now() - 20000;
+		
+		collection.remove({ lastSync: { $lte: ts } }, function(err, result) {
+			if (err) {
+				aiota.log(config.processName, config.serverName, db, err);
+			}
+		});
+	});
+}
+
 function bodyParser(request, response, next)
 {
 	if (request._body) {
@@ -100,8 +119,10 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 		db = dbConnection;
 		http.createServer(app).listen(config.port);
 		
+		aiota.processHeartbeat(config.processName, config.serverName, db);
 		launchMicroProcesses();
 
 		setInterval(function() { aiota.processHeartbeat(config.processName, config.serverName, db); }, 10000);
+		setInterval(function() { cleanUp(); }, 600000);
 	}
 });
