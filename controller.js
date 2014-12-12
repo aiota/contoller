@@ -14,6 +14,28 @@ function sendPOSTResponse(response, data)
 	response.send(data);
 }
 
+function launchMicroProcesses()
+{
+	var procs = [];
+
+	// We always start the AiotA console
+	var proc = {
+			launchingProcess: "aiota-controller",
+			serverName: "localhost",
+			directory: "/usr/local/lib/node_modules/aiota/node_modules",
+			module: "aiota-console",
+			script: "console.js",
+			description: "AiotA Management Console",
+			logFile: "/var/log/aiota/aiota.log"
+		};
+
+	procs.push(proc);
+	
+	for (var i = 0; i < procs.length; ++i) {
+		aiota.startProcess(db, proc);
+	}
+}
+
 function bodyParser(request, response, next)
 {
 	if (request._body) {
@@ -78,6 +100,8 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 		db = dbConnection;
 		http.createServer(app).listen(config.port);
 		
+		launchMicroProcesses();
+
 		setInterval(function() { aiota.processHeartbeat(config.processName, config.serverName, db); }, 10000);
 	}
 });
