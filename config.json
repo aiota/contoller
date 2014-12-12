@@ -1,0 +1,10 @@
+{
+	"processName": "controller.js",
+	"serverName": "localhost",
+	"port": 8081,
+	"database": {
+		"host": "localhost",
+		"name": "aiota",
+		"port": 27017
+	}
+}
