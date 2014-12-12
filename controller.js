@@ -7,6 +7,7 @@ var MongoClient = require("mongodb").MongoClient;
 var config = require("./config");
 
 var db = null;
+var children = [];
 
 function sendPOSTResponse(response, data)
 {
@@ -33,7 +34,7 @@ function launchMicroProcesses()
 	procs.push(proc);
 	
 	for (var i = 0; i < procs.length; ++i) {
-		aiota.startProcess(db, proc);
+		children.push(aiota.startProcess(db, proc));
 	}
 }
 
@@ -107,6 +108,9 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 
 		process.on("SIGTERM", function() {
 			aiota.terminateProcess(config.processName, config.serverName, db);
+			for (var i = 0; i < children.length; ++i) {
+				children[i].kill(true);
+			}
 			process.exit(1);
 		});
 	}
