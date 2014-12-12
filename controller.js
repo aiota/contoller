@@ -16,29 +16,6 @@ function sendPOSTResponse(response, data)
 
 function launchMicroProcesses()
 {
-	var procs = [];
-
-	// We always start the AiotA console
-	var proc = {
-			launchingProcess: "aiota-controller",
-			serverName: "localhost",
-			directory: "/usr/local/lib/node_modules/aiota/node_modules",
-			module: "aiota-console",
-			script: "console.js",
-			maxRuns: 3,
-			description: "AiotA Management Console",
-			logFile: "/var/log/aiota/aiota.log"
-		};
-
-	procs.push(proc);
-	
-	for (var i = 0; i < procs.length; ++i) {
-		aiota.startProcess(db, proc);
-	}
-}
-
-function cleanUp()
-{
 	// Remove all processes from the running processes collection which have not sent their status for 20 seconds or more
 	db.collection("running_processes", function(err, collection) {
 		if (err) {
@@ -46,11 +23,29 @@ function cleanUp()
 			return;
 		}
 
-		var ts = Date.now() - 20000;
-		
-		collection.remove({ lastSync: { $lte: ts } }, function(err, result) {
+		collection.remove({}, function(err, result) {
 			if (err) {
 				aiota.log(config.processName, config.serverName, db, err);
+			}
+
+			var procs = [];
+		
+			// We always start the AiotA console
+			var proc = {
+					launchingProcess: "aiota-controller",
+					serverName: "localhost",
+					directory: "/usr/local/lib/node_modules/aiota/node_modules",
+					module: "aiota-console",
+					script: "console.js",
+					maxRuns: 3,
+					description: "AiotA Management Console",
+					logFile: "/var/log/aiota/aiota.log"
+				};
+		
+			procs.push(proc);
+			
+			for (var i = 0; i < procs.length; ++i) {
+				aiota.startProcess(db, proc);
 			}
 		});
 	});
@@ -120,10 +115,8 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 		db = dbConnection;
 		http.createServer(app).listen(config.port);
 		
-		aiota.processHeartbeat(config.processName, config.serverName, db);
 		launchMicroProcesses();
 
-		setInterval(function() { aiota.processHeartbeat(config.processName, config.serverName, db); }, 10000);
-		setInterval(function() { cleanUp(); }, 600000);
+		setInterval(function() { aiota.heartbeat(config.processName, config.serverName, db); }, 10000);
 	}
 });
