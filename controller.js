@@ -25,6 +25,7 @@ function launchMicroProcesses()
 			directory: "/usr/local/lib/node_modules/aiota/node_modules",
 			module: "aiota-console",
 			script: "console.js",
+			maxRuns: 3,
 			description: "AiotA Management Console",
 			logFile: "/var/log/aiota/aiota.log"
 		};
