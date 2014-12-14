@@ -42,6 +42,7 @@ function launchMicroProcesses()
 		
 		// Start the configured number of instances of this micro process
 		for (var j = 0; j < procs[i].instances; ++j) {
+			proc.uid = proc.module + "_" + j;
 			aiota.startProcess(db, proc);
 		}
 	}
