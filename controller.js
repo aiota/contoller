@@ -16,24 +16,34 @@ function sendPOSTResponse(response, data)
 
 function launchMicroProcesses()
 {
-	var procs = [];
-
-	// We always start the AiotA console
-	var proc = {
-			launchingProcess: "aiota-controller",
-			serverName: "localhost",
-			directory: "/usr/local/lib/node_modules/aiota/node_modules",
-			module: "aiota-console",
-			script: "console.js",
-			maxRuns: 3,
-			description: "AiotA Management Console",
-			logFile: "/var/log/aiota/aiota.log"
-		};
-
-	procs.push(proc);
+	var procs = [
+		// We always start the AiotA console
+		{ script: "console.js", module: "aiota-console", description: "Management Console", maxRuns: 3, instances: 1 }
+	];
+	
+	procs.push({ script: "ingestion.js", module: "aiota-ingestion", description: "Ingestion API", maxRuns: 3, instances: 1 });
+	procs.push({ script: "register.js", module: "aiota-register", description: "Device Registration Process", maxRuns: 3, instances: 1 });
+	procs.push({ script: "session.js", module: "aiota-session", description: "Session Provisioning Process", maxRuns: 3, instances: 1 });
+	procs.push({ script: "longpolling.js", module: "aiota-longpolling", description: "Long Polling Process", maxRuns: 3, instances: 2 });
+	procs.push({ script: "response.js", module: "aiota-response", description: "Response Message Process", maxRuns: 3, instances: 1 });
+	procs.push({ script: "telemetry.js", module: "aiota-telemetry", description: "Telemetry Message Process", maxRuns: 3, instances: 1 });
 
 	for (var i = 0; i < procs.length; ++i) {
-		aiota.startProcess(db, proc);
+		var proc = {
+				launchingProcess: "aiota-controller",
+				serverName: "localhost",
+				directory: "/usr/local/lib/node_modules/aiota/node_modules",
+				module: procs[i].module,
+				script: procs[i].script,
+				maxRuns: procs[i].maxRuns,
+				description: procs[i].description,
+				logFile: "/var/log/aiota/aiota.log"
+		};
+		
+		// Start the configured number of instances of this micro process
+		for (var j = 0; j < procs[i].instances; ++j) {
+			aiota.startProcess(db, proc);
+		}
 	}
 }
 
