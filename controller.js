@@ -139,11 +139,9 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 			
 					stream.on("end", function() {
 						for (var i = 0; i < pids.length; ++i) {
-							console.log(pids[i]);
-							process.kill(pids[i], "SIGTERM");
+							aiota.killProcess(pids[i]);
 						}
 				
-						collection.update
 						process.exit(1);
 					});
 				});
