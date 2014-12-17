@@ -8,6 +8,16 @@ var config = require("./config");
 
 var db = null;
 
+var scripts = {
+	"console.js" : { module: "aiota-console", description: "Management Console" },
+	"ingestion.js": { module: "aiota-ingestion", description: "Ingestion API" },
+	"longpolling.js": { module: "aiota-longpolling", description: "Long Polling Process" },
+	"register.js": { module: "aiota-register", description: "Device Registration Process" },
+	"response.js": { module: "aiota-response", description: "Response Message Process" },
+	"session.js": { module: "aiota-session", description: "Session Provisioning Process" },
+	"telemetry.js": { module: "aiota-telemetry", description: "Telemetry Message Process" }
+};
+
 function sendGETResponse(request, response, data)
 {
 	var callback = request.query.callback;
@@ -23,29 +33,30 @@ function sendGETResponse(request, response, data)
 	}
 }
 
+
 function launchMicroProcesses()
 {
 	var procs = [
 		// We always start the AiotA console
-		{ script: "console.js", module: "aiota-console", description: "Management Console", maxRuns: 3, instances: 1 }
+		{ script: "console.js", maxRuns: 3, instances: 1 }
 	];
 	
-	procs.push({ script: "ingestion.js", module: "aiota-ingestion", description: "Ingestion API", maxRuns: 3, instances: 1 });
-	procs.push({ script: "register.js", module: "aiota-register", description: "Device Registration Process", maxRuns: 3, instances: 1 });
-	procs.push({ script: "session.js", module: "aiota-session", description: "Session Provisioning Process", maxRuns: 3, instances: 1 });
-	procs.push({ script: "longpolling.js", module: "aiota-longpolling", description: "Long Polling Process", maxRuns: 3, instances: 2 });
-	procs.push({ script: "response.js", module: "aiota-response", description: "Response Message Process", maxRuns: 3, instances: 1 });
-	procs.push({ script: "telemetry.js", module: "aiota-telemetry", description: "Telemetry Message Process", maxRuns: 3, instances: 1 });
+	procs.push({ script: "ingestion.js", maxRuns: 3, instances: 1 });
+	procs.push({ script: "register.js", maxRuns: 3, instances: 1 });
+	procs.push({ script: "session.js", maxRuns: 3, instances: 1 });
+	procs.push({ script: "longpolling.js", maxRuns: 3, instances: 2 });
+	procs.push({ script: "response.js", maxRuns: 3, instances: 1 });
+	procs.push({ script: "telemetry.js", maxRuns: 3, instances: 1 });
 
 	for (var i = 0; i < procs.length; ++i) {
 		var proc = {
 				launchingProcess: "aiota-controller",
-				serverName: "localhost",
+				serverName: config.serverName,
 				directory: "/usr/local/lib/node_modules/aiota/node_modules",
-				module: procs[i].module,
+				module: scripts[procs[i].script].module,
 				script: procs[i].script,
 				maxRuns: procs[i].maxRuns,
-				description: procs[i].description,
+				description: scripts[procs[i].script].description,
 				logFile: "/var/log/aiota/aiota.log"
 		};
 		
@@ -116,6 +127,19 @@ app.get("/api/action", function(request, response) {
 	case "stop":		aiota.stopProcess(request.query.process, config.serverName, parseInt(request.query.pid, 10), db);
 						break;
 	case "kill":		aiota.killProcess(parseInt(request.query.pid, 10));
+						break;
+	case "spawn":		var proc = {
+							launchingProcess: "aiota-controller",
+							serverName: config.serverName,
+							directory: "/usr/local/lib/node_modules/aiota/node_modules",
+							module: scripts[request.query.process].module,
+							script: request.query.process,
+							maxRuns: 3,
+							description: scripts[request.query.process].description,
+							logFile: "/var/log/aiota/aiota.log"
+						};
+		
+						aiota.startProcess(db, proc);
 						break;
 	}
 
