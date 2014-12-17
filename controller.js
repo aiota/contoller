@@ -8,10 +8,19 @@ var config = require("./config");
 
 var db = null;
 
-function sendPOSTResponse(response, data)
+function sendGETResponse(request, response, data)
 {
-	response.contentType("json");
-	response.send(data);
+	var callback = request.query.callback;
+	
+	if (callback && (callback != "undefined")) {
+		// This is a JSONP request
+		response.contentType("text/javascript");
+		response.send(callback + "(" + JSON.stringify(data) + ");");
+	}
+	else {
+		response.contentType("json");
+		response.send(data);
+	}
 }
 
 function launchMicroProcesses()
@@ -42,7 +51,6 @@ function launchMicroProcesses()
 		
 		// Start the configured number of instances of this micro process
 		for (var j = 0; j < procs[i].instances; ++j) {
-			proc.uid = proc.module + "_" + j;
 			aiota.startProcess(db, proc);
 		}
 	}
@@ -100,8 +108,18 @@ app.use(bodyParser);
 app.use(methodOverride());
 app.use(express.static(__dirname + "/public"));
 
-// POST requests
-app.post("/start", function(request, response) {
+// GET requests
+app.get("/api/action", function(request, response) {
+	switch (request.query.type) {
+	case "restart":		aiota.restartProcess(request.query.pid);
+						break;
+	case "stop":		aiota.stopProcess(request.query.pid);
+						break;
+	case "kill":		aiota.killProcess(request.query.pid);
+						break;
+	}
+
+	sendGETResponse(request, response, { success: true });	
 });
 
 MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.port + "/" + config.database.name, function(err, dbConnection) {
