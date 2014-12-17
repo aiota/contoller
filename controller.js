@@ -115,7 +115,7 @@ app.get("/api/action", function(request, response) {
 						break;
 	case "stop":		aiota.stopProcess(request.query.process, config.serverName, parseInt(request.query.pid, 10), db);
 						break;
-	case "kill":		aiota.killProcess(request.query.pid);
+	case "kill":		aiota.killProcess(parseInt(request.query.pid, 10));
 						break;
 	}
 
