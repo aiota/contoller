@@ -111,9 +111,9 @@ app.use(express.static(__dirname + "/public"));
 // GET requests
 app.get("/api/action", function(request, response) {
 	switch (request.query.type) {
-	case "restart":		aiota.restartProcess(request.query.pid);
+	case "restart":		aiota.restartProcess(request.query.process, config.serverName, request.query.pid);
 						break;
-	case "stop":		aiota.stopProcess(request.query.pid);
+	case "stop":		aiota.stopProcess(request.query.process, config.serverName, request.query.pid);
 						break;
 	case "kill":		aiota.killProcess(request.query.pid);
 						break;
