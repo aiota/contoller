@@ -136,6 +136,7 @@ app.get("/api/action", function(request, response) {
 							directory: config.directories.aiota + "node_modules",
 							module: scripts[request.query.process].module,
 							script: request.query.process,
+							args: process.argv.slice(2),
 							maxRuns: 3,
 							description: scripts[request.query.process].description,
 							logFile: config.directories.log + "aiota.log"
