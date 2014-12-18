@@ -4,7 +4,8 @@ var cookieParser = require("cookie-parser");
 var methodOverride = require("method-override");
 var http = require("http");
 var MongoClient = require("mongodb").MongoClient;
-var config = require("/usr/local/lib/node_modules/aiota/config");
+var config = null;
+var scriptArgs = [];
 var processName = "controller.js";
 
 var db = null;
@@ -34,7 +35,6 @@ function sendGETResponse(request, response, data)
 	}
 }
 
-
 function launchMicroProcesses()
 {
 	var procs = [
@@ -53,13 +53,13 @@ function launchMicroProcesses()
 		var proc = {
 				launchingProcess: "aiota-controller",
 				serverName: config.serverName,
-				directory: "/usr/local/lib/node_modules/aiota/node_modules",
+				directory: config.directories.aiota + "node_modules",
 				module: scripts[procs[i].script].module,
 				script: procs[i].script,
-				args: [],
+				args: scriptArgs,
 				maxRuns: procs[i].maxRuns,
 				description: scripts[procs[i].script].description,
-				logFile: "/var/log/aiota/aiota.log"
+				logFile: config.directories.log + "aiota.log"
 		};
 		
 		// Start the configured number of instances of this micro process
@@ -133,12 +133,12 @@ app.get("/api/action", function(request, response) {
 	case "spawn":		var proc = {
 							launchingProcess: "aiota-controller",
 							serverName: config.serverName,
-							directory: "/usr/local/lib/node_modules/aiota/node_modules",
+							directory: config.directories.aiota + "node_modules",
 							module: scripts[request.query.process].module,
 							script: request.query.process,
 							maxRuns: 3,
 							description: scripts[request.query.process].description,
-							logFile: "/var/log/aiota/aiota.log"
+							logFile: config.directories.log + "aiota.log"
 						};
 		
 						aiota.startProcess(db, proc);
@@ -148,50 +148,60 @@ app.get("/api/action", function(request, response) {
 	sendGETResponse(request, response, { success: true });	
 });
 
-var args = process.argv.slice(2);
+scriptArgs = process.argv.slice(2);
  
-MongoClient.connect("mongodb://" + args[0] + ":" + args[1] + "/" + args[2], function(err, dbConnection) {
+MongoClient.connect("mongodb://" + scriptArgs[0] + ":" + scriptArgs[1] + "/" + scriptArgs[2], function(err, dbConnection) {
 	if (err) {
-		aiota.log(processName, config.serverName, null, err);
+		aiota.log(processName, "", null, err);
 	}
 	else {
 		db = dbConnection;
-		http.createServer(app).listen(config.ports["aiota-controller"]);
 		
-		launchMicroProcesses();
+		aiota.getConfig(db, function(c) {
+			if (c == null) {
+				aiota.log(processName, "", db, "Error getting config from database");
+			}
+			else {
+				config = c;
 
-		setInterval(function() { aiota.heartbeat(processName, config.serverName, db); }, 10000);
-
-		process.on("SIGTERM", function() {
-			aiota.terminateProcess(processName, config.serverName, db, function() {
-				db.collection("running_processes", function(err, collection) {
-					if (err) {
-						createLog(processName, config.serverName, db, err);
-						process.exit(1);
-						return;
-					}
-			
-					var pids = [];
-					
-					var stream = collection.find({ server: config.serverName, status: "running" }, { pid: 1 }).stream();
-					
-					stream.on("error", function (err) {
-						createLog(processName, config.serverName, db, err);
-					});
-			
-					stream.on("data", function(doc) {
-						pids.push(doc.pid);
-					});
-			
-					stream.on("end", function() {
-						for (var i = 0; i < pids.length; ++i) {
-							aiota.killProcess(pids[i]);
-						}
+				http.createServer(app).listen(config.ports["aiota-controller"]);
 				
-						process.exit(1);
+				launchMicroProcesses();
+		
+				setInterval(function() { aiota.heartbeat(processName, config.serverName, db); }, 10000);
+		
+				process.on("SIGTERM", function() {
+					aiota.terminateProcess(processName, config.serverName, db, function() {
+						db.collection("running_processes", function(err, collection) {
+							if (err) {
+								createLog(processName, config.serverName, db, err);
+								process.exit(1);
+								return;
+							}
+					
+							var pids = [];
+							
+							var stream = collection.find({ server: config.serverName, status: "running" }, { pid: 1 }).stream();
+							
+							stream.on("error", function (err) {
+								createLog(processName, config.serverName, db, err);
+							});
+					
+							stream.on("data", function(doc) {
+								pids.push(doc.pid);
+							});
+					
+							stream.on("end", function() {
+								for (var i = 0; i < pids.length; ++i) {
+									aiota.killProcess(pids[i]);
+								}
+						
+								process.exit(1);
+							});
+						});
 					});
 				});
-			});
+			}
 		});
 	}
 });
