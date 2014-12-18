@@ -4,7 +4,8 @@ var cookieParser = require("cookie-parser");
 var methodOverride = require("method-override");
 var http = require("http");
 var MongoClient = require("mongodb").MongoClient;
-var config = require("./config");
+var config = require("/usr/local/lib/node_modules/aiota/config");
+var processName = "controller.js";
 
 var db = null;
 
@@ -55,6 +56,7 @@ function launchMicroProcesses()
 				directory: "/usr/local/lib/node_modules/aiota/node_modules",
 				module: scripts[procs[i].script].module,
 				script: procs[i].script,
+				args: [],
 				maxRuns: procs[i].maxRuns,
 				description: scripts[procs[i].script].description,
 				logFile: "/var/log/aiota/aiota.log"
@@ -146,23 +148,25 @@ app.get("/api/action", function(request, response) {
 	sendGETResponse(request, response, { success: true });	
 });
 
-MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.port + "/" + config.database.name, function(err, dbConnection) {
+var args = process.argv.slice(2);
+ 
+MongoClient.connect("mongodb://" + args[0] + ":" + args[1] + "/" + args[2], function(err, dbConnection) {
 	if (err) {
-		aiota.log(config.processName, config.serverName, null, err);
+		aiota.log(processName, config.serverName, null, err);
 	}
 	else {
 		db = dbConnection;
-		http.createServer(app).listen(config.port);
+		http.createServer(app).listen(config.ports["aiota-controller"]);
 		
 		launchMicroProcesses();
 
-		setInterval(function() { aiota.heartbeat(config.processName, config.serverName, db); }, 10000);
+		setInterval(function() { aiota.heartbeat(processName, config.serverName, db); }, 10000);
 
 		process.on("SIGTERM", function() {
-			aiota.terminateProcess(config.processName, config.serverName, db, function() {
+			aiota.terminateProcess(processName, config.serverName, db, function() {
 				db.collection("running_processes", function(err, collection) {
 					if (err) {
-						createLog(config.processName, config.serverName, db, err);
+						createLog(processName, config.serverName, db, err);
 						process.exit(1);
 						return;
 					}
@@ -172,7 +176,7 @@ MongoClient.connect("mongodb://" + config.database.host + ":" + config.database.
 					var stream = collection.find({ server: config.serverName, status: "running" }, { pid: 1 }).stream();
 					
 					stream.on("error", function (err) {
-						createLog(config.processName, config.serverName, db, err);
+						createLog(processName, config.serverName, db, err);
 					});
 			
 					stream.on("data", function(doc) {
