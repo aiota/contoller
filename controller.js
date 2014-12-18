@@ -56,7 +56,7 @@ function launchMicroProcesses()
 				directory: config.directories.aiota + "node_modules",
 				module: scripts[procs[i].script].module,
 				script: procs[i].script,
-				args: scriptArgs,
+				args: process.argv.slice(2),
 				maxRuns: procs[i].maxRuns,
 				description: scripts[procs[i].script].description,
 				logFile: config.directories.log + "aiota.log"
@@ -148,9 +148,9 @@ app.get("/api/action", function(request, response) {
 	sendGETResponse(request, response, { success: true });	
 });
 
-scriptArgs = process.argv.slice(2);
+var args = process.argv.slice(2);
  
-MongoClient.connect("mongodb://" + scriptArgs[0] + ":" + scriptArgs[1] + "/" + scriptArgs[2], function(err, dbConnection) {
+MongoClient.connect("mongodb://" + args[0] + ":" + args[1] + "/" + args[2], function(err, dbConnection) {
 	if (err) {
 		aiota.log(processName, "", null, err);
 	}
