@@ -17,6 +17,7 @@ var scripts = {
 	"register.js": { module: "aiota-register", description: "Device Registration Process" },
 	"response.js": { module: "aiota-response", description: "Response Message Process" },
 	"session.js": { module: "aiota-session", description: "Session Provisioning Process" },
+	"stream.js": { module: "aiota-stream", description: "Server-sent Events Process" },
 	"telemetry.js": { module: "aiota-telemetry", description: "Telemetry Message Process" }
 };
 
@@ -45,7 +46,8 @@ function launchMicroProcesses()
 	procs.push({ script: "ingestion.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "register.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "session.js", maxRuns: 3, instances: 1 });
-	procs.push({ script: "longpolling.js", maxRuns: 3, instances: 2 });
+	procs.push({ script: "longpolling.js", maxRuns: 3, instances: 1 });
+	procs.push({ script: "stream.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "response.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "telemetry.js", maxRuns: 3, instances: 1 });
 
