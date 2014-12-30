@@ -6,7 +6,6 @@ var http = require("http");
 var MongoClient = require("mongodb").MongoClient;
 var config = null;
 var scriptArgs = [];
-var processName = "controller.js";
 
 var db = null;
 
@@ -54,7 +53,7 @@ function launchMicroProcesses()
 	for (var i = 0; i < procs.length; ++i) {
 		var proc = {
 				launchingProcess: "aiota-controller",
-				serverName: config.serverName,
+				server: config.server,
 				directory: config.directories.aiota + "node_modules",
 				module: scripts[procs[i].script].module,
 				script: procs[i].script,
@@ -126,15 +125,15 @@ app.use(express.static(__dirname + "/public"));
 // GET requests
 app.get("/api/action", function(request, response) {
 	switch (request.query.type) {
-	case "restart":		aiota.restartProcess(request.query.process, config.serverName, parseInt(request.query.pid, 10), db);
+	case "restart":		aiota.restartProcess(request.query.process, config.server, parseInt(request.query.pid, 10), db);
 						break;
-	case "stop":		aiota.stopProcess(request.query.process, config.serverName, parseInt(request.query.pid, 10), db);
+	case "stop":		aiota.stopProcess(request.query.process, config.server, parseInt(request.query.pid, 10), db);
 						break;
 	case "kill":		aiota.killProcess(parseInt(request.query.pid, 10));
 						break;
 	case "spawn":		var proc = {
 							launchingProcess: "aiota-controller",
-							serverName: config.serverName,
+							server: config.server,
 							directory: config.directories.aiota + "node_modules",
 							module: scripts[request.query.process].module,
 							script: request.query.process,
@@ -155,14 +154,14 @@ var args = process.argv.slice(2);
  
 MongoClient.connect("mongodb://" + args[0] + ":" + args[1] + "/" + args[2], function(err, dbConnection) {
 	if (err) {
-		aiota.log(processName, "", null, err);
+		aiota.log(__filename, "", null, err);
 	}
 	else {
 		db = dbConnection;
 		
 		aiota.getConfig(db, function(c) {
 			if (c == null) {
-				aiota.log(processName, "", db, "Error getting config from database");
+				aiota.log(__filename, "", db, "Error getting config from database");
 			}
 			else {
 				config = c;
@@ -171,23 +170,23 @@ MongoClient.connect("mongodb://" + args[0] + ":" + args[1] + "/" + args[2], func
 				
 				launchMicroProcesses();
 		
-				setInterval(function() { aiota.heartbeat(processName, config.serverName, db); }, 10000);
+				setInterval(function() { aiota.heartbeat(__filename, config.server, db); }, 10000);
 		
 				process.on("SIGTERM", function() {
-					aiota.terminateProcess(processName, config.serverName, db, function() {
+					aiota.terminateProcess(__filename, config.server, db, function() {
 						db.collection("running_processes", function(err, collection) {
 							if (err) {
-								createLog(processName, config.serverName, db, err);
+								createLog(__filename, config.server, db, err);
 								process.exit(1);
 								return;
 							}
 					
 							var pids = [];
 							
-							var stream = collection.find({ server: config.serverName, status: "running" }, { pid: 1 }).stream();
+							var stream = collection.find({ server: config.server, status: "running" }, { pid: 1 }).stream();
 							
 							stream.on("error", function (err) {
-								createLog(processName, config.serverName, db, err);
+								createLog(__filename, config.server, db, err);
 							});
 					
 							stream.on("data", function(doc) {
