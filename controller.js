@@ -18,8 +18,7 @@ var scripts = {
 	"response.js": { module: "aiota-response", description: "Response Message Process" },
 	"session.js": { module: "aiota-session", description: "Session Provisioning Process" },
 	"stream.js": { module: "aiota-stream", description: "Server-sent Events Process" },
-	"telemetry.js": { module: "aiota-telemetry", description: "Telemetry Message Process" },
-	"websockets.js": { module: "aiota-websockets", description: "Websockets Process" }
+	"telemetry.js": { module: "aiota-telemetry", description: "Telemetry Message Process" }
 };
 
 function sendGETResponse(request, response, data)
@@ -51,7 +50,6 @@ function launchMicroProcesses()
 	procs.push({ script: "stream.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "response.js", maxRuns: 3, instances: 1 });
 	procs.push({ script: "telemetry.js", maxRuns: 3, instances: 1 });
-	procs.push({ script: "websockets.js", maxRuns: 3, instances: 1 });
 
 	for (var i = 0; i < procs.length; ++i) {
 		var proc = {
